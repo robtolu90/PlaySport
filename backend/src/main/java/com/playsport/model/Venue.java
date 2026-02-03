@@ -27,6 +27,8 @@ public class Venue {
     private Integer maxPlayers;
     private Double hourlyRate;
     private String description;
+    private String imageUrl;
+    private String facilities; // comma-separated list
 
     public Long getId() {
         return id;
@@ -106,5 +108,21 @@ public class Venue {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+ 
+    public String getFacilities() {
+        return facilities;
+    }
+ 
+    public void setFacilities(String facilities) {
+        this.facilities = facilities;
     }
 }

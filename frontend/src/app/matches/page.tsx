@@ -18,33 +18,38 @@ export default async function MatchesPage({ searchParams }: { searchParams?: { s
   const matches = await getMatches(sport, from, to);
   return (
     <main className="grid">
+      <div className="page-header">
+        <div className="h1">Partidas</div>
+        <Link className="btn btn-primary" href="/matches/new">Criar partida</Link>
+      </div>
       <div className="card">
-        <h2>Partidas</h2>
-        <form className="row" action="/matches">
-          <select className="input" name="sport" defaultValue={sport || ''}>
-            <option value="">Todos</option>
-            <option value="FUTSAL">Futsal</option>
-            <option value="BEACH_SOCCER">Beach Soccer</option>
-            <option value="SOCCER">Soccer</option>
-            <option value="BASKETBALL">Basquete</option>
-            <option value="VOLLEYBALL">Vôlei</option>
-          </select>
-          <input className="input" type="date" name="from" defaultValue={from || ''} />
-          <input className="input" type="date" name="to" defaultValue={to || ''} />
-          <button className="button" type="submit">Buscar</button>
-          <Link className="button" href="/matches/new">Criar partida</Link>
-        </form>
+        <div className="section">
+          <div className="h2">Filtros</div>
+          <form className="row" action="/matches">
+            <select className="input" name="sport" defaultValue={sport || ''}>
+              <option value="">Todos</option>
+              <option value="FUTSAL">Futsal</option>
+              <option value="BEACH_SOCCER">Beach Soccer</option>
+              <option value="SOCCER">Soccer</option>
+              <option value="BASKETBALL">Basquete</option>
+              <option value="VOLLEYBALL">Vôlei</option>
+            </select>
+            <input className="input" type="date" name="from" defaultValue={from || ''} />
+            <input className="input" type="date" name="to" defaultValue={to || ''} />
+            <button className="btn btn-secondary" type="submit">Buscar</button>
+          </form>
+        </div>
       </div>
       <div className="list">
         {matches.map((m: any) => (
           <div key={m.id} className="card">
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <div>
-                <div>{m.venue?.name} · {m.sportType}</div>
-                <div>{new Date(m.startTime).toLocaleString('pt-BR')}</div>
-                <div>{(m.participants?.length || 0)}/{m.maxPlayers} jogadores</div>
+                <div className="h2">{m.venue?.name} · {m.sportType}</div>
+                <div className="text-muted">{new Date(m.startTime).toLocaleString('pt-BR')}</div>
+                <div className="text-muted">{(m.participants?.length || 0)}/{m.maxPlayers} jogadores</div>
               </div>
-              <Link className="button" href={`/matches/${m.id}`}>Ver</Link>
+              <Link className="btn btn-tertiary" href={`/matches/${m.id}`}>Ver</Link>
             </div>
           </div>
         ))}

@@ -1,9 +1,8 @@
 package com.playsport.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import javax.persistence.*;
-import javax.validation.constraints.Future;
-import javax.validation.constraints.NotNull;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,23 +12,28 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "venue_id")
+    @ManyToOne
+    @JoinColumn(name = "venue_id", nullable = false)
+    @JsonIgnoreProperties("bookings")
     private Venue venue;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties("bookings")
     private User user;
 
-    @NotNull
-    @Future
+    @Column(nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startTime;
 
-    @NotNull
-    @Future
+    @Column(nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endTime;
 
-    private String status;
+    @Column(nullable = false)
+    private Double price;
+
+    private String status; // CONFIRMED, CANCELLED
 
     public Long getId() {
         return id;
@@ -69,6 +73,14 @@ public class Booking {
 
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
     public String getStatus() {

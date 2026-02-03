@@ -12,11 +12,12 @@ export default function LoginPage() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     try {
-      const res = await post<{ id: number; name: string; email: string; token: string }>('/api/auth/login', { email, password });
+      const res = await post<{ id: number; name: string; email: string; token: string; roles: string[] }>('/api/auth/login', { email, password });
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', res.token);
         localStorage.setItem('userId', String(res.id));
         localStorage.setItem('userName', res.name);
+        localStorage.setItem('userRoles', JSON.stringify(res.roles));
         window.dispatchEvent(new Event('auth-change'));
       }
       router.push('/');

@@ -4,6 +4,7 @@ import com.playsport.model.Match;
 import com.playsport.model.User;
 import com.playsport.repository.MatchRepository;
 import com.playsport.repository.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

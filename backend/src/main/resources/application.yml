@@ -1,12 +1,13 @@
 server:
-  port: 8080
+  port: 5555
 spring:
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/playsport?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:postgresql://db.gbebfasbpnglfodszljj.supabase.co:5432/postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Playsport1990!}
+    driver-class-name: org.postgresql.Driver
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -15,5 +16,5 @@ spring:
         format_sql: true
 security:
   jwt:
-    secret: ${JWT_SECRET:change-this-secret}
+    secret: ${JWT_SECRET:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZWJmYXNicG5nbGZvZHN6bGpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjYxMDksImV4cCI6MjA4NTY0MjEwOX0.tnYtTXyzJhT4MF2e2kylGGbQ1ReUjRPVWbge-npUcm0}
     expiration: 86400000

@@ -1,6 +1,6 @@
 'use client';
-import React, { useState } from 'react';
-import { post } from '../../../lib/api';
+import React, { useState, useEffect } from 'react';
+import { post, api } from '../../../lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function NewMatchPage() {
@@ -9,6 +9,11 @@ export default function NewMatchPage() {
   const [venueId, setVenueId] = useState('');
   const [startTime, setStartTime] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(10);
+  const [venues, setVenues] = useState<any[]>([]);
+
+  useEffect(() => {
+    api<any[]>('/api/venues').then(setVenues).catch(() => {});
+  }, []);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,8 +34,13 @@ export default function NewMatchPage() {
           <option value="BASKETBALL">Basquete</option>
           <option value="VOLLEYBALL">Vôlei</option>
         </select>
-        <label>Campo (ID)</label>
-        <input className="input" value={venueId} onChange={e => setVenueId(e.target.value)} placeholder="Ex: 1" />
+        <label>Campo</label>
+        <select className="input" value={venueId} onChange={e => setVenueId(e.target.value)} required>
+            <option value="">Selecione um campo...</option>
+            {venues.map(v => (
+                <option key={v.id} value={v.id}>{v.name} ({v.city})</option>
+            ))}
+        </select>
         <label>Data e hora</label>
         <input className="input" type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} />
         <label>Máximo de jogadores</label>

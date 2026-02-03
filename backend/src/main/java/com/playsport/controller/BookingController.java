@@ -1,35 +1,73 @@
 package com.playsport.controller;
 
 import com.playsport.model.Booking;
+import com.playsport.model.User;
+import com.playsport.model.Venue;
 import com.playsport.repository.BookingRepository;
-import com.playsport.service.BookingService;
+import com.playsport.repository.UserRepository;
+import com.playsport.repository.VenueRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bookings")
+@CrossOrigin(origins = "http://localhost:3000")
 public class BookingController {
-    private final BookingRepository bookingRepository;
-    private final BookingService bookingService;
 
-    public BookingController(BookingRepository bookingRepository, BookingService bookingService) {
-        this.bookingRepository = bookingRepository;
-        this.bookingService = bookingService;
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private VenueRepository venueRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @GetMapping("/venue/{venueId}")
+    public List<Booking> getBookings(@PathVariable Long venueId, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.atTime(LocalTime.MAX);
+        return bookingRepository.findByVenueIdAndStartTimeBetween(venueId, start, end);
+    }
+ 
+    @GetMapping("/venue/{venueId}/recent")
+    public List<Booking> getRecentBookings(@PathVariable Long venueId, @RequestParam(defaultValue = "5") int limit) {
+        return bookingRepository.findByVenueIdOrderByStartTimeDesc(venueId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, Math.min(limit, 20))));
     }
 
     @PostMapping
-    public ResponseEntity<Booking> create(@RequestBody Booking booking) {
-        try {
-            return ResponseEntity.ok(bookingService.create(booking));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
+    public ResponseEntity<?> createBooking(@RequestBody Map<String, Object> payload) {
+        Long venueId = Long.parseLong(payload.get("venueId").toString());
+        Long userId = Long.parseLong(payload.get("userId").toString());
+        String startTimeStr = payload.get("startTime").toString(); // ISO format
+        LocalDateTime startTime = LocalDateTime.parse(startTimeStr);
+        LocalDateTime endTime = startTime.plusHours(1); // Assume 1 hour slots for now
 
-    @GetMapping
-    public List<Booking> byUser(@RequestParam Long userId) {
-        return bookingRepository.findByUserId(userId);
+        // Check availability
+        boolean exists = bookingRepository.existsByVenueIdAndStartTimeLessThanAndEndTimeGreaterThan(venueId, endTime, startTime);
+        if (exists) {
+            return ResponseEntity.badRequest().body("Slot already booked");
+        }
+
+        Venue venue = venueRepository.findById(venueId).orElseThrow(() -> new RuntimeException("Venue not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+        Booking booking = new Booking();
+        booking.setVenue(venue);
+        booking.setUser(user);
+        booking.setStartTime(startTime);
+        booking.setEndTime(endTime);
+        booking.setPrice(venue.getHourlyRate());
+        booking.setStatus("CONFIRMED");
+
+        return ResponseEntity.ok(bookingRepository.save(booking));
     }
 }
