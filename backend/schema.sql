@@ -44,6 +44,7 @@ CREATE TABLE matches (
     organizer_id BIGINT,
     start_time TIMESTAMP,
     end_time TIMESTAMP,
+    facility VARCHAR(255),
     max_players INTEGER,
     price_per_player DOUBLE PRECISION,
     description VARCHAR(255),
@@ -68,6 +69,7 @@ CREATE TABLE bookings (
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     status VARCHAR(255),
+    facility VARCHAR(255),
     FOREIGN KEY (venue_id) REFERENCES venues(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );

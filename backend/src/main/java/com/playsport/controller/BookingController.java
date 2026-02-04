@@ -40,7 +40,7 @@ public class BookingController {
  
     @GetMapping("/venue/{venueId}/recent")
     public List<Booking> getRecentBookings(@PathVariable Long venueId, @RequestParam(defaultValue = "5") int limit) {
-        return bookingRepository.findByVenueIdOrderByStartTimeDesc(venueId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, Math.min(limit, 20))));
+        return bookingRepository.findByVenueIdOrderByCreatedAtDesc(venueId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, Math.min(limit, 20))));
     }
 
     @PostMapping
@@ -48,11 +48,14 @@ public class BookingController {
         Long venueId = Long.parseLong(payload.get("venueId").toString());
         Long userId = Long.parseLong(payload.get("userId").toString());
         String startTimeStr = payload.get("startTime").toString(); // ISO format
+        String facility = payload.get("facility") != null ? payload.get("facility").toString() : null;
         LocalDateTime startTime = LocalDateTime.parse(startTimeStr);
         LocalDateTime endTime = startTime.plusHours(1); // Assume 1 hour slots for now
 
-        // Check availability
-        boolean exists = bookingRepository.existsByVenueIdAndStartTimeLessThanAndEndTimeGreaterThan(venueId, endTime, startTime);
+        // Check availability (per facility if provided)
+        boolean exists = facility != null && !facility.isBlank()
+                ? bookingRepository.existsByVenueIdAndFacilityAndStartTimeLessThanAndEndTimeGreaterThan(venueId, facility, endTime, startTime)
+                : bookingRepository.existsByVenueIdAndStartTimeLessThanAndEndTimeGreaterThan(venueId, endTime, startTime);
         if (exists) {
             return ResponseEntity.badRequest().body("Slot already booked");
         }
@@ -67,7 +70,14 @@ public class BookingController {
         booking.setEndTime(endTime);
         booking.setPrice(venue.getHourlyRate());
         booking.setStatus("CONFIRMED");
+        booking.setFacility(facility);
 
         return ResponseEntity.ok(bookingRepository.save(booking));
+    }
+    
+    @DeleteMapping("/reset")
+    public ResponseEntity<?> resetBookings() {
+        bookingRepository.deleteAll();
+        return ResponseEntity.ok().build();
     }
 }

@@ -4,6 +4,7 @@ import com.playsport.model.Match;
 import com.playsport.model.SportType;
 import com.playsport.repository.MatchRepository;
 import com.playsport.service.MatchService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,22 +24,47 @@ public class MatchController {
     }
 
     @PostMapping
-    public Match create(@RequestBody Match match) {
-        return matchService.create(match);
+    public ResponseEntity<?> create(@RequestBody Match match) {
+        try {
+            return ResponseEntity.ok(matchService.create(match));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
     }
 
     @GetMapping
     public List<Match> list(@RequestParam(required = false) SportType sport,
-                            @RequestParam(required = false) LocalDate from,
-                            @RequestParam(required = false) LocalDate to) {
+                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         LocalDateTime f = from != null ? from.atStartOfDay() : null;
         LocalDateTime t = to != null ? to.atTime(23, 59, 59) : null;
-        return matchRepository.search(sport, f, t);
+        if (sport == null && f == null && t == null) {
+            return matchRepository.findAllWithParticipants();
+        }
+        if (sport != null && f == null && t == null) {
+            return matchRepository.findBySportWithParticipants(sport);
+        }
+        if (sport == null && f != null && t == null) {
+            return matchRepository.findByStartTimeAfterWithParticipants(f);
+        }
+        if (sport == null && f == null && t != null) {
+            return matchRepository.findByStartTimeBeforeWithParticipants(t);
+        }
+        if (sport == null && f != null && t != null) {
+            return matchRepository.findByStartTimeBetweenWithParticipants(f, t);
+        }
+        if (sport != null && f != null && t != null) {
+            return matchRepository.findBySportAndStartTimeBetweenWithParticipants(sport, f, t);
+        }
+        if (sport != null && f != null) {
+            return matchRepository.findBySportAndStartTimeAfterWithParticipants(sport, f);
+        }
+        return matchRepository.findBySportAndStartTimeBeforeWithParticipants(sport, t);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Match> get(@PathVariable Long id) {
-        return matchRepository.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return matchRepository.findByIdWithParticipants(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/join")

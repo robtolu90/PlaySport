@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="shadow" cx="64" cy="100" r="36">
+      <stop offset="0" stop-color="rgba(0,0,0,0.4)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="#0b1220"/>
+  <g transform="translate(16,16)">
+    <circle cx="48" cy="48" r="42" fill="#0f172a"/>
+    <g>
+      <clipPath id="halfLeft"><rect x="6" y="6" width="42" height="84"/></clipPath>
+      <clipPath id="halfRight"><rect x="48" y="6" width="42" height="84"/></clipPath>
+      <!-- Left: soccer -->
+      <g clip-path="url(#halfLeft)">
+        <circle cx="48" cy="48" r="42" fill="#ffffff"/>
+        <path d="M36 20 l12 -6 12 6 6 12 -6 12 -12 6 -12 -6 -6 -12z" fill="#111827"/>
+        <path d="M18 34 l8 -10 10 -6 M78 34 l-8 -10 -10 -6 M18 62 l8 10 10 6 M78 62 l-8 10 -10 6" stroke="#111827" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- Right: volleyball -->
+      <g clip-path="url(#halfRight)">
+        <circle cx="48" cy="48" r="42" fill="#ffd54f"/>
+        <path d="M48 12 c18 4 30 14 36 26" stroke="#1e3a8a" stroke-width="6" fill="none"/>
+        <path d="M48 28 c16 4 26 12 32 22" stroke="#2563eb" stroke-width="6" fill="none"/>
+        <path d="M48 44 c14 4 22 10 28 18" stroke="#1e40af" stroke-width="6" fill="none"/>
+      </g>
+    </g>
+    <ellipse cx="48" cy="90" rx="28" ry="8" fill="url(#shadow)" opacity="0.35"/>
+  </g>
+</svg>

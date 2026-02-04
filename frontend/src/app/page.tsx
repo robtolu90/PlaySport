@@ -2,22 +2,19 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="grid grid-2">
-      <section className="card">
-        <h2>MVP PlaySport</h2>
-        <p>Reservas de campos e partidas abertas.</p>
-        <div className="row">
-          <Link className="button" href="/venues">Explorar Campos</Link>
-          <Link className="button" href="/matches">Ver Partidas</Link>
+    <main className="hero">
+      <div className="hero-content">
+        <div className="display">Reserve campos. Jogue com a sua turma.</div>
+        <p className="lead text-muted">PlaySport facilita a reserva de campos e a organização de partidas abertas, com disponibilidade por hora e experiência rápida.</p>
+        <div className="cta">
+          <Link className="btn btn-primary" href="/venues">Explorar campos</Link>
+          <Link className="btn btn-secondary" href="/matches">Ver partidas</Link>
         </div>
-      </section>
-      <section className="card">
-        <h3>Autenticação</h3>
-        <div className="row">
-          <Link className="button" href="/auth/login">Entrar</Link>
-          <Link className="button" href="/auth/register">Cadastrar</Link>
+        <div className="aux text-muted">
+          <span>Já tem conta?</span>
+          <Link href="/auth/login">Entrar</Link>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

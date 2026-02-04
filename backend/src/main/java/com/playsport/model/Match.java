@@ -38,6 +38,9 @@ public class Match {
     
     @Future
     private LocalDateTime endTime;
+    
+    @Column
+    private String facility;
 
     @ManyToMany
     @JoinTable(
@@ -117,6 +120,14 @@ public class Match {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+    
+    public String getFacility() {
+        return facility;
+    }
+    
+    public void setFacility(String facility) {
+        this.facility = facility;
     }
 
     public Set<User> getParticipants() {

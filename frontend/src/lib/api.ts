@@ -5,8 +5,17 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     ...init
   });
-  if (!res.ok) throw new Error('Erro de requisição');
-  return res.json();
+  if (!res.ok) {
+    let msg = '';
+    try { msg = await res.text(); } catch {}
+    throw new Error(msg || 'Erro de requisição');
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) {
+    return res.json();
+  }
+  const txt = await res.text();
+  return txt as unknown as T;
 }
 
 export async function post<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {

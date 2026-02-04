@@ -20,6 +20,13 @@ public class UserController {
         this.matchRepository = matchRepository;
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<User> get(@PathVariable Long id) {
+        return userRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{id}/matches")
     public List<Match> myMatches(@PathVariable Long id) {
         return matchRepository.findForUser(id);

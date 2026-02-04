@@ -1,10 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { BASE_URL } from '../../../lib/api';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 export default function VenueDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const [venue, setVenue] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -12,6 +13,9 @@ export default function VenueDetailsPage() {
   const [nearby, setNearby] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmHour, setConfirmHour] = useState<number | null>(null);
+  const [selectedFacility, setSelectedFacility] = useState<string | null>(null);
+  const [dayMatches, setDayMatches] = useState<any[]>([]);
+  const [refreshingAvailability, setRefreshingAvailability] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -26,11 +30,23 @@ export default function VenueDetailsPage() {
 
   useEffect(() => {
     if (params.id && selectedDate) {
-      fetch(`${BASE_URL}/api/bookings/venue/${params.id}?date=${selectedDate}`)
-        .then(r => r.json())
-        .then(setBookings)
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      const fetchAll = async () => {
+        try {
+          const [bs, ms] = await Promise.all([
+            fetch(`${BASE_URL}/api/bookings/venue/${params.id}?date=${selectedDate}`).then(r => r.json()),
+            fetch(`${BASE_URL}/api/matches?from=${selectedDate}&to=${selectedDate}`).then(r => r.json())
+          ]);
+          setBookings(bs || []);
+          setDayMatches((ms || []).filter((m: any) => m?.venue?.id?.toString() === params.id?.toString()));
+        } catch (e) {
+          console.error(e);
+          setBookings([]);
+          setDayMatches([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchAll();
     }
   }, [params.id, selectedDate]);
 
@@ -73,38 +89,31 @@ export default function VenueDetailsPage() {
       return;
     }
     setConfirmHour(hour);
+    setSelectedFacility(null);
+    const dateStr = selectedDate;
+    if (params.id && dateStr) {
+      setRefreshingAvailability(true);
+      Promise.all([
+        fetch(`${BASE_URL}/api/bookings/venue/${params.id}?date=${dateStr}`).then(r => r.json()),
+        fetch(`${BASE_URL}/api/matches?from=${dateStr}&to=${dateStr}`).then(r => r.json())
+      ])
+        .then(([bs, ms]) => {
+          setBookings(bs || []);
+          setDayMatches((ms || []).filter((m: any) => m?.venue?.id?.toString() === params.id?.toString()));
+        })
+        .catch(() => {
+          setBookings([]);
+          setDayMatches([]);
+        })
+        .finally(() => setRefreshingAvailability(false));
+    }
   };
 
-  const confirmBooking = async () => {
-    if (confirmHour == null) return;
-    const userId = localStorage.getItem('userId');
-    if (!userId) return;
+  const continueToCreateMatch = () => {
+    if (confirmHour == null || !selectedFacility || !venue) return;
     const startTime = `${selectedDate}T${confirmHour.toString().padStart(2, '0')}:00:00`;
-
-    try {
-      const res = await fetch(`${BASE_URL}/api/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          venueId: params.id,
-          userId,
-          startTime
-        })
-      });
-
-      if (res.ok) {
-        setConfirmHour(null);
-        // Refresh bookings
-        const updated = await fetch(`${BASE_URL}/api/bookings/venue/${params.id}?date=${selectedDate}`).then(r => r.json());
-        setBookings(updated);
-        alert('Reserva realizada com sucesso!');
-      } else {
-        const msg = await res.text();
-        alert('Erro ao reservar: ' + msg);
-      }
-    } catch (e) {
-      alert('Erro ao reservar');
-    }
+    const url = `/matches/new?venueId=${venue.id}&startTime=${encodeURIComponent(startTime)}&facility=${encodeURIComponent(selectedFacility)}&sport=${venue.sportType}`;
+    router.push(url as any);
   };
 
   if (!venue) return <main className="card">Carregando...</main>;
@@ -127,8 +136,19 @@ export default function VenueDetailsPage() {
     return true;
   });
 
+  const rawFacilities = (venue?.facilities || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+  const sportDefaults: Record<string, string[]> = {
+    FUTSAL: ['Futsal Court A', 'Futsal Court B', 'Futsal Court C'],
+    SOCCER: ['Football Pitch A', 'Football Pitch B', 'Football Pitch C'],
+    BEACH_SOCCER: ['Beach Soccer A', 'Beach Soccer B', 'Beach Soccer C'],
+    BASKETBALL: ['Basket Court A', 'Basket Court B'],
+    VOLLEYBALL: ['Volleyball Court A', 'Volleyball Court B']
+  };
+  const facilityItems = rawFacilities.length > 0 ? rawFacilities : (sportDefaults[venue?.sportType] || ['Pitch A', 'Pitch B', 'Pitch C']);
+  const facilitiesCount = Math.max(1, facilityItems.length || 1);
+
   const renderFacilities = () => {
-    const items = (venue.facilities || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+    const items = facilityItems;
     if (items.length === 0) return null;
     return (
       <section className="card">
@@ -186,26 +206,24 @@ export default function VenueDetailsPage() {
 
         <div className="grid" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '0.5rem'}}>
             {filteredSlots.map(hour => {
-                const isBooked = bookings.some(b => {
-                    const bookingHour = new Date(b.startTime).getHours();
-                    return bookingHour === hour;
-                });
+                const bookedCount = bookings.filter(b => new Date(b.startTime).getHours() === hour).length;
+                const isFull = bookedCount >= facilitiesCount;
                 
                 return (
                     <button 
                         key={hour} 
-                        className={`button ${isBooked ? 'disabled' : ''}`}
+                        className={`button ${isFull ? 'disabled' : ''}`}
                         style={{
-                            backgroundColor: isBooked ? '#ccc' : '#28a745', 
-                            cursor: isBooked ? 'not-allowed' : 'pointer',
-                            opacity: isBooked ? 0.6 : 1
+                            backgroundColor: isFull ? '#ef4444' : '#22c55e', 
+                            cursor: isFull ? 'not-allowed' : 'pointer',
+                            opacity: isFull ? 0.85 : 1
                         }}
-                        disabled={isBooked}
+                        disabled={isFull}
                         onClick={() => openConfirm(hour)}
                     >
                         {hour}:00 - {hour+1}:00
                         <br/>
-                        <small>{isBooked ? 'Ocupado' : 'Livre'}</small>
+                        <small>{isFull ? 'Sem instalações' : 'Disponível'}</small>
                     </button>
                 );
             })}
@@ -219,7 +237,7 @@ export default function VenueDetailsPage() {
           {recentBookings.map((b: any) => (
             <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
               <div>
-                <div>{new Date(b.startTime).toLocaleString('pt-BR')}</div>
+                <div>{new Date(b.createdAt ?? b.startTime).toLocaleString('pt-BR')}</div>
                 <small>Status: {b.status}</small>
               </div>
               <div>R$ {b.price}</div>
@@ -250,12 +268,50 @@ export default function VenueDetailsPage() {
 
       {confirmHour !== null && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ width: 360 }}>
-            <h3>Confirmar reserva</h3>
-            <p>Você quer reservar {confirmHour}:00 - {confirmHour + 1}:00 em {selectedDate}?</p>
+          <div className="card" style={{ width: 520, display: 'grid', gap: '12px' }}>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <h3>Escolher instalação</h3>
+              <span className="pill">{selectedDate} · {String(confirmHour).padStart(2,'0')}:00 - {String(confirmHour! + 1).padStart(2,'0')}:00</span>
+            </div>
+            <div className="list">
+              {facilityItems.length === 0 && <div>Sem instalações cadastradas.</div>}
+              {facilityItems.map((f: string) => {
+                const isBookedByReservation = bookings.some(b => {
+                  const h = new Date(b.startTime).getHours();
+                  return h === confirmHour && (b.facility || '').trim() === f;
+                });
+                const isBookedByMatch = dayMatches.some(m => {
+                  const h = new Date(m.startTime).getHours();
+                  return h === confirmHour && (m.facility || '').trim() === f && m?.venue?.id === venue?.id;
+                });
+                const isBooked = isBookedByReservation || isBookedByMatch;
+                const selected = selectedFacility === f;
+                return (
+                  <button
+                    key={f}
+                    className="btn btn-secondary"
+                    disabled={isBooked}
+                    onClick={() => setSelectedFacility(f)}
+                    style={{
+                      justifyContent: 'space-between',
+                      borderColor: selected ? 'rgba(34,197,94,0.7)' : 'rgba(255,255,255,0.18)',
+                      boxShadow: selected ? '0 0 0 2px rgba(34,197,94,0.35)' : 'none',
+                      opacity: isBooked ? 0.6 : 1
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 999, background: isBooked ? '#ef4444' : '#22c55e' }} />
+                      {f}
+                    </span>
+                    <span style={{ color: '#22c55e' }}>R$ {venue.hourlyRate?.toFixed(2)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {refreshingAvailability && <small style={{ color: '#888' }}>Atualizando disponibilidade...</small>}
             <div className="row" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="button" style={{ backgroundColor: '#ccc' }} onClick={() => setConfirmHour(null)}>Cancelar</button>
-              <button className="button" onClick={confirmBooking}>Confirmar</button>
+              <button className="btn btn-secondary" onClick={() => { setConfirmHour(null); setSelectedFacility(null); }}>Cancelar</button>
+              <button className="btn btn-primary" disabled={!selectedFacility} onClick={continueToCreateMatch}>Continuar</button>
             </div>
           </div>
         </div>

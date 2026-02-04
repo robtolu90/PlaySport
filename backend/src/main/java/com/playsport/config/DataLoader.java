@@ -54,6 +54,7 @@ public class DataLoader {
                 v1.setSportType(SportType.FUTSAL);
                 v1.setHourlyRate(50.0);
                 v1.setDescription("Quadra profissional de futsal com piso de madeira.");
+                v1.setFacilities("Football Pitch A, Football Pitch B, Football Pitch C, Futsal Court A, Beach Soccer A");
                 venueRepository.save(v1);
 
                 Venue v2 = new Venue();
@@ -63,6 +64,7 @@ public class DataLoader {
                 v2.setSportType(SportType.BEACH_SOCCER);
                 v2.setHourlyRate(40.0);
                 v2.setDescription("Campo de areia oficial.");
+                v2.setFacilities("Football Pitch A, Football Pitch B, Football Pitch C, Futsal Court A, Beach Soccer A");
                 venueRepository.save(v2);
 
                 Venue v3 = new Venue();
@@ -72,6 +74,7 @@ public class DataLoader {
                 v3.setSportType(SportType.SOCCER);
                 v3.setHourlyRate(60.0);
                 v3.setDescription("Campo de grama sintética 7-a-side.");
+                v3.setFacilities("Football Pitch A, Football Pitch B, Football Pitch C, Futsal Court A, Beach Soccer A");
                 venueRepository.save(v3);
 
                 // 4. Create Matches
@@ -84,6 +87,7 @@ public class DataLoader {
                 m1.setMaxPlayers(10);
                 m1.setPricePerPlayer(5.0);
                 m1.setDescription("Partida casual de quarta-feira.");
+                m1.setFacility("Futsal Court A");
                 matchRepository.save(m1);
 
                 Match m2 = new Match();
@@ -95,6 +99,7 @@ public class DataLoader {
                 m2.setMaxPlayers(14);
                 m2.setPricePerPlayer(8.0);
                 m2.setDescription("Futebol 7, nível intermediário.");
+                m2.setFacility("Football Pitch A");
                 matchRepository.save(m2);
                 
                 System.out.println("Created Venues and Matches");
