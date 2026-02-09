@@ -15,9 +15,17 @@ async function getMatches(sport?: string, from?: string, to?: string) {
 
 export default async function MatchesPage({ searchParams }: { searchParams?: { sport?: string; from?: string; to?: string } }) {
   const sport = searchParams?.sport;
-  const from = searchParams?.from;
+  const from = searchParams?.from || new Date().toISOString().split('T')[0];
   const to = searchParams?.to;
   const matches = await getMatches(sport, from, to);
+  const now = new Date();
+  const futureMatches = (matches || []).filter((m: any) => {
+    try {
+      return new Date(m.startTime).getTime() >= now.getTime();
+    } catch {
+      return true;
+    }
+  });
   return (
     <main className="grid">
       <PageHeader
@@ -28,7 +36,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: { s
       />
       <MatchFilterBar defaultSport={sport} defaultFrom={from} defaultTo={to} />
       <div className="list">
-        {matches.map((m: any) => (
+        {futureMatches.map((m: any) => (
           <MatchCard key={m.id} match={m} />
         ))}
       </div>

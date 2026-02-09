@@ -65,7 +65,9 @@ export default function NewMatchPage() {
     e.preventDefault();
     if (!facility) { alert('Selecione a instalação (ex.: Pitch A)'); return; }
     const normalizedStart = startTime.length === 16 ? `${startTime}:00` : startTime.length === 19 ? startTime : `${startTime}:00`;
-    const body = { sportType: sport, venue: { id: Number(venueId) }, startTime: normalizedStart, maxPlayers, facility };
+    const organizerId = typeof window !== 'undefined' ? Number(localStorage.getItem('userId') || 0) : 0;
+    if (!organizerId) { alert('Faça login para criar partida.'); return; }
+    const body = { sportType: sport, venue: { id: Number(venueId) }, organizer: { id: organizerId }, startTime: normalizedStart, maxPlayers, facility };
     try {
       await post('/api/matches', body);
       router.push('/matches');

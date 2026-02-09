@@ -2,12 +2,19 @@
 import React, { useEffect, useState } from 'react';
 import { BASE_URL } from '../../lib/api';
 import Link from 'next/link';
+import Avatar from '../../components/Avatar';
+import MatchCard from '../../components/MatchCard';
+import Skeleton from '../../components/ui/Skeleton';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any | null>(null);
   const [matches, setMatches] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<any>({});
+  const [followers, setFollowers] = useState<any[]>([]);
+  const [following, setFollowing] = useState<any[]>([]);
+  const [toast, setToast] = useState('');
+  const [modal, setModal] = useState<'followers' | 'following' | null>(null);
 
   useEffect(() => {
     const id = localStorage.getItem('userId');
@@ -26,6 +33,16 @@ export default function ProfilePage() {
         .then(r => r.json())
         .then(setMatches)
         .catch(() => setMatches([]));
+      
+      // Social lists
+      fetch(`${BASE_URL}/api/social/followers/${id}`)
+        .then(r => r.json())
+        .then(setFollowers)
+        .catch(() => setFollowers([]));
+      fetch(`${BASE_URL}/api/social/following/${id}`)
+        .then(r => r.json())
+        .then(setFollowing)
+        .catch(() => setFollowing([]));
     }
   }, []);
 
@@ -45,11 +62,15 @@ export default function ProfilePage() {
         // Update localStorage just in case
         localStorage.setItem('userName', updated.name);
         if (updated.email) localStorage.setItem('userEmail', updated.email);
+        setToast('Perfil salvo');
+        setTimeout(() => setToast(''), 3000);
       } else {
-        alert('Erro ao salvar perfil');
+        setToast('Erro ao salvar perfil');
+        setTimeout(() => setToast(''), 3000);
       }
     } catch (e) {
-      alert('Erro ao salvar perfil');
+      setToast('Erro ao salvar perfil');
+      setTimeout(() => setToast(''), 3000);
     }
   };
 
@@ -76,14 +97,73 @@ export default function ProfilePage() {
     }
   };
 
-  if (!user) return <main className="card">Carregando perfil...</main>;
+  if (!user) return (
+    <main className="grid">
+      <section className="card" style={{ padding: '24px' }}>
+        <div className="row" style={{ gap: 16 }}>
+          <Skeleton style={{ width: 72, height: 72, borderRadius: 999 }} />
+          <div className="grid" style={{ gap: 8 }}>
+            <Skeleton style={{ width: 180, height: 24 }} />
+            <Skeleton style={{ width: 220, height: 16 }} />
+            <div className="row" style={{ gap: 8 }}>
+              <Skeleton style={{ width: 100, height: 24 }} />
+              <Skeleton style={{ width: 100, height: 24 }} />
+              <Skeleton style={{ width: 100, height: 24 }} />
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="card">
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <Skeleton style={{ width: 120, height: 22 }} />
+          <Skeleton style={{ width: 60, height: 30 }} />
+        </div>
+        <div className="list" style={{ marginTop: 12 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="row" style={{ gap: 12 }}>
+              <Skeleton style={{ width: 24, height: 24, borderRadius: 6 }} />
+              <Skeleton style={{ width: 220, height: 16 }} />
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="card">
+        <Skeleton style={{ width: 160, height: 22, marginBottom: 8 }} />
+        <div className="grid" style={{ gap: '1rem' }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} style={{ width: '100%', height: 120 }} />
+          ))}
+        </div>
+      </section>
+    </main>
+  );
 
   return (
     <main className="grid">
-      <div className="page-header">
-        <div className="h1">Perfil</div>
-        {!isEditing && <button className="btn btn-secondary" onClick={() => setIsEditing(true)}>Editar</button>}
-      </div>
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#22c55e', color: '#052e1a', padding: '12px 16px', borderRadius: 8, boxShadow: '0 6px 16px rgba(0,0,0,0.35)', fontWeight: 600 }}>
+          {toast}
+        </div>
+      )}
+      <section className="card" style={{ padding: '24px', boxShadow: 'var(--shadow-glow)' }}>
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <div className="row" style={{ gap: 16 }}>
+            <Avatar src={user.avatarUrl} alt={user.name} size={72} name={user.name} />
+            <div>
+              <div className="h1">{user.name}</div>
+              <div className="text-muted">Jogador • {user.city || 'Sua cidade'}</div>
+              <div className="row" style={{ gap: 8, marginTop: 8 }}>
+                <button className="pill" onClick={() => setModal('following')}>{following.length} Seguindo</button>
+                <button className="pill" onClick={() => setModal('followers')}>{followers.length} Seguidores</button>
+                <span className="pill">{matches.length} Partidas</span>
+              </div>
+            </div>
+          </div>
+          {!isEditing && (
+            <button className="btn btn-secondary" onClick={() => setIsEditing(true)} title="Editar">✏️ Editar</button>
+          )}
+        </div>
+      </section>
       <section className="card">
 
         {isEditing ? (
@@ -115,29 +195,85 @@ export default function ProfilePage() {
           </div>
         ) : (
             <div>
-                {user.avatarUrl && <img src={user.avatarUrl} alt="Avatar" style={{width: 64, height: 64, borderRadius: '50%', marginBottom: '1rem', objectFit: 'cover'}} />}
-                <div style={{marginBottom: '0.5rem'}}><strong>Nome:</strong> {user.name}</div>
-                <div style={{marginBottom: '0.5rem'}}><strong>Email:</strong> {user.email}</div>
-                <div style={{marginBottom: '0.5rem'}}><strong>Telefone:</strong> {user.phoneNumber || '-'}</div>
-                <div style={{marginBottom: '0.5rem'}}><strong>Cidade:</strong> {user.city || '-'}</div>
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <div className="h2">Informações</div>
+                  <button className="btn btn-secondary" onClick={() => setIsEditing(true)}>✏️</button>
+                </div>
+                <div className="list" style={{ marginTop: 8 }}>
+                  <div className="row"><span style={{ width: 24 }}>👤</span><strong>Nome</strong><span style={{ marginLeft: 8 }}>{user.name}</span></div>
+                  <div className="row"><span style={{ width: 24 }}>✉️</span><strong>Email</strong><span style={{ marginLeft: 8 }}>{user.email}</span></div>
+                  <div className="row"><span style={{ width: 24 }}>📞</span><strong>Telefone</strong><span style={{ marginLeft: 8 }}>{user.phoneNumber || 'Adicionar'}</span></div>
+                  <div className="row"><span style={{ width: 24 }}>📍</span><strong>Cidade</strong><span style={{ marginLeft: 8 }}>{user.city || 'Adicionar'}</span></div>
+                </div>
             </div>
         )}
       </section>
       <section className="card">
-        <div className="h2">Minhas partidas</div>
-        <div className="list">
-          {matches.length === 0 && <div>Nenhuma partida.</div>}
-          {matches.map(m => (
-            <div key={m.id} className="row" style={{ justifyContent: 'space-between' }}>
-              <div>
-                <div className="h2">{m.venue?.name} · {m.sportType}</div>
-                <div className="text-muted">{new Date(m.startTime).toLocaleString('pt-BR')}</div>
-              </div>
-              <Link className="btn btn-tertiary" href={`/matches/${m.id}` as any}>Ver</Link>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="h2">Rede</div>
+          <div className="row" style={{ gap: 8 }}>
+            <span className="pill">Seguidores: {followers.length}</span>
+            <span className="pill">Seguindo: {following.length}</span>
+          </div>
+        </div>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+          <div>
+            <div className="h2" style={{ marginBottom: 8 }}>Seguidores</div>
+            <div className="list">
+              {followers.length === 0 && <div>Ninguém te segue ainda.</div>}
+              {followers.map((u: any) => (
+                <Link key={u.id} href={`/users/${u.id}`} className="row" style={{ gap: 8 }}>
+                  <Avatar src={u.avatarUrl} alt={u.name} size={28} name={u.name} />
+                  <div>{u.name}</div>
+                </Link>
+              ))}
             </div>
+          </div>
+          <div>
+            <div className="h2" style={{ marginBottom: 8 }}>Seguindo</div>
+            <div className="list">
+              {following.length === 0 && <div>Você ainda não segue ninguém.</div>}
+              {following.map((u: any) => (
+                <Link key={u.id} href={`/users/${u.id}`} className="row" style={{ gap: 8 }}>
+                  <Avatar src={u.avatarUrl} alt={u.name} size={28} name={u.name} />
+                  <div>{u.name}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="card">
+        <div className="h2">Atividade</div>
+        <div className="grid">
+          {matches.length === 0 && <div>Você ainda não participou de partidas.</div>}
+          {matches.map(m => (
+            <MatchCard key={m.id} match={m} />
           ))}
         </div>
       </section>
+      {modal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: 520, display: 'grid', gap: 12 }}>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <div className="h2">{modal === 'followers' ? 'Seguidores' : 'Seguindo'}</div>
+              <button className="btn btn-secondary" onClick={() => setModal(null)}>Fechar</button>
+            </div>
+            <div className="list">
+              {(modal === 'followers' ? followers : following).map((u: any) => (
+                <Link key={u.id} href={`/users/${u.id}`} className="row" style={{ gap: 8, justifyContent: 'space-between' }}>
+                  <div className="row" style={{ gap: 8 }}>
+                    <Avatar src={u.avatarUrl} alt={u.name} size={28} name={u.name} />
+                    <div>{u.name}</div>
+                  </div>
+                  <span className="pill">{modal === 'followers' ? 'Seguidor' : 'Seguindo'}</span>
+                </Link>
+              ))}
+              {(modal === 'followers' ? followers : following).length === 0 && <div>Vazio.</div>}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

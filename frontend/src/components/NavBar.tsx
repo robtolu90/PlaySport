@@ -42,8 +42,9 @@ export default function NavBar() {
         </Link>
       </div>
       <div className="actions">
-        <Link href="/venues">Campos</Link>
-        <Link href="/matches">Partidas</Link>
+        <Link href="/venues">🏟️ Campos</Link>
+        <Link href="/matches">⚽ Partidas</Link>
+        <Link href="/invites">👥 Convites</Link>
         {isAdmin && (<Link className="btn btn-primary" href="/venues/new">+ Campo</Link>)}
         {user ? (
           <Dropdown userName={user.name} onLogout={logout} />

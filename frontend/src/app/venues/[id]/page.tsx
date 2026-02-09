@@ -16,6 +16,9 @@ export default function VenueDetailsPage() {
   const [selectedFacility, setSelectedFacility] = useState<string | null>(null);
   const [dayMatches, setDayMatches] = useState<any[]>([]);
   const [refreshingAvailability, setRefreshingAvailability] = useState(false);
+  const [isSavingBooking, setIsSavingBooking] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [bookingSuccess, setBookingSuccess] = useState('');
 
   useEffect(() => {
     if (params.id) {
@@ -114,6 +117,54 @@ export default function VenueDetailsPage() {
     const startTime = `${selectedDate}T${confirmHour.toString().padStart(2, '0')}:00:00`;
     const url = `/matches/new?venueId=${venue.id}&startTime=${encodeURIComponent(startTime)}&facility=${encodeURIComponent(selectedFacility)}&sport=${venue.sportType}`;
     router.push(url as any);
+  };
+  
+  const createBooking = async () => {
+    if (confirmHour == null || !selectedFacility || !venue) return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('Faça login para reservar.');
+      return;
+    }
+    const startTime = `${selectedDate}T${confirmHour.toString().padStart(2, '0')}:00:00`;
+    setIsSavingBooking(true);
+    setBookingError('');
+    setBookingSuccess('');
+    try {
+      const res = await fetch(`${BASE_URL}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          venueId: venue.id,
+          userId,
+          startTime,
+          facility: selectedFacility
+        })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Erro ao criar reserva');
+      }
+      const created = await res.json();
+      setBookingSuccess('Reserva confirmada');
+      // Refresh lists: day bookings and recent bookings
+      const [bs, recent] = await Promise.all([
+        fetch(`${BASE_URL}/api/bookings/venue/${params.id}?date=${selectedDate}`).then(r => r.json()),
+        fetch(`${BASE_URL}/api/bookings/venue/${params.id}/recent?limit=5`).then(r => r.json())
+      ]);
+      setBookings(bs || []);
+      setRecentBookings(recent || []);
+      // Close modal after short delay
+      setTimeout(() => {
+        setConfirmHour(null);
+        setSelectedFacility(null);
+        setBookingSuccess('');
+      }, 800);
+    } catch (e: any) {
+      setBookingError(e?.message || 'Falha na reserva');
+    } finally {
+      setIsSavingBooking(false);
+    }
   };
 
   if (!venue) return <main className="card">Carregando...</main>;
@@ -273,6 +324,8 @@ export default function VenueDetailsPage() {
               <h3>Escolher instalação</h3>
               <span className="pill">{selectedDate} · {String(confirmHour).padStart(2,'0')}:00 - {String(confirmHour! + 1).padStart(2,'0')}:00</span>
             </div>
+            {bookingError && <small style={{ color: '#ef4444' }}>{bookingError}</small>}
+            {bookingSuccess && <small style={{ color: '#22c55e' }}>{bookingSuccess}</small>}
             <div className="list">
               {facilityItems.length === 0 && <div>Sem instalações cadastradas.</div>}
               {facilityItems.map((f: string) => {
@@ -311,7 +364,10 @@ export default function VenueDetailsPage() {
             {refreshingAvailability && <small style={{ color: '#888' }}>Atualizando disponibilidade...</small>}
             <div className="row" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button className="btn btn-secondary" onClick={() => { setConfirmHour(null); setSelectedFacility(null); }}>Cancelar</button>
-              <button className="btn btn-primary" disabled={!selectedFacility} onClick={continueToCreateMatch}>Continuar</button>
+              <button className="btn btn-primary" disabled={!selectedFacility || isSavingBooking} onClick={createBooking}>
+                {isSavingBooking ? 'Reservando...' : 'Reservar'}
+              </button>
+              <button className="btn btn-secondary" disabled={!selectedFacility} onClick={continueToCreateMatch}>Criar partida</button>
             </div>
           </div>
         </div>
